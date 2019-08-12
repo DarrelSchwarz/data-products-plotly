@@ -1,0 +1,112 @@
+---
+title: "Interactive Market Information Chart"
+author: "Darrel Schwarz"
+date: "12/08/2019"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(plotly)
+```
+
+```{r getdata,message=FALSE,results="hide"}
+library(quantmod)
+getSymbols(c("GOOG","AAPL"),src='yahoo',warnings=F)
+```
+
+```{r datasetup}
+dfg <- data.frame(Date=index(GOOG),Ticker="GOOG",coredata(GOOG))
+names(dfg) <- c("Date","Ticker","Open","High","Low","Close","Volume","Adjusted")
+dfa <- data.frame(Date=index(AAPL),Ticker="AAPL",coredata(AAPL))
+names(dfa) <- c("Date","Ticker","Open","High","Low","Close","Volume","Adjusted")
+dfc <-rbind(dfa,dfg)
+```
+
+
+## Market Information Chart
+```{r plot,message=FALSE}
+
+updatemenus <- list(
+    # Stock Select
+    list(y = 1,
+         x=-0.2,
+         buttons = list(list(method = "restyle",
+                             args = list("transforms[0].value", unique(dfc$Ticker)[1]),
+                             label = unique(dfc$Ticker)[1]),
+                        list(method = "restyle",
+                             args = list("transforms[0].value", unique(dfc$Ticker)[2]),
+                             label = unique(dfc$Ticker)[2])
+                        )
+         ),
+    # Data Select
+    list(y=0.75,
+         x=-0.2,
+        active = 6,
+        type= 'buttons',
+        buttons = list(
+                      list(
+                          label = "High",
+                          method = "update",
+                          args = list(list(visible = c(FALSE, TRUE, FALSE, FALSE, FALSE)),
+                                      list(title = "Stock Price",
+                                           yaxis=list(title="Price ($US)")))),
+                      list(
+                        label = "Low",
+                        method = "update",
+                        args = list(list(visible = c(TRUE, FALSE, FALSE, FALSE, FALSE)),
+                                    list(title = "Stock Price",
+                                         yaxis=list(title="Price ($US)")))),
+                      list(
+                        label = "Open",
+                        method = "update",
+                        args = list(list(visible = c(FALSE, FALSE, TRUE, FALSE, FALSE)),
+                                    list(title = "Stock Price",
+                                         yaxis=list(title="Price ($US)")))),
+                      list(
+                        label = "Close",
+                        method = "update",
+                        args = list(list(visible = c(FALSE, FALSE, FALSE, TRUE, FALSE)),
+                                    list(title = "Stock Price",
+                                         yaxis=list(title="Price ($US)")))),
+                      list(
+                        label = "Volume",
+                        method = "update",
+                        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, TRUE)),
+                                    list(title = "Market Volume",
+                                         yaxis=list(title="Volume")))),
+                      list(
+                        label = "Reset",
+                        method = "update",
+                        args = list(list(visible = c(TRUE, TRUE, FALSE, FALSE, FALSE)),
+                                    list(title = "Stock Price",
+                                         yaxis=list(title="Price ($US)"))))
+)))
+
+p <- dfc %>%
+  plot_ly(type = 'scatter', mode = 'lines',
+      transforms = list(
+      list(
+        type = 'filter',
+        target = ~Ticker,
+        operation = '=',
+        value = unique(dfc$Ticker)[1]))
+      ) %>%
+
+  add_trace(x=~Date, y=~High, name="High",
+            line=list(color="green")) %>%
+  add_trace(x=~Date, y=~Open, name="Open",
+            line=list(color="lightblue"),visible=F) %>%
+  add_trace(x=~Date, y=~Close, name="Close",
+            line=list(color="darkblue"),visible=F) %>%
+  add_trace(x=~Date, y=~Volume, name="Volume",
+            line=list(color="blue"),visible=F) %>%
+  add_trace(x=~Date, y=~Low, name="Low",
+            line=list(color="red")) %>%
+  layout(title = "Stock Price", showlegend=TRUE,
+         xaxis=list(title="Date"),
+         updatemenus=updatemenus) 
+p
+```
+
+<font size="1">* prices sourced from 'Yahoo' using 'quantmod' library and plotted using 'plotly'</font>
